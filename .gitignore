@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+.DS_Store
+/build
+/captures
+#android studio ignore
+build
+*.iml
+.idea
+.git
+.gradle
+gradle
+gradlew.*
+local.*
