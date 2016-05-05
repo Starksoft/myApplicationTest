@@ -3,6 +3,7 @@ package com.test.myapplication;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,10 +25,12 @@ public class LoginActivity extends AppCompatActivity
 {
 	/**
 	 * A dummy authentication store containing known user names and passwords.
-	 * TODO: remove after connecting to a real authentication system.
 	 */
 	private static final String[] DUMMY_CREDENTIALS = new String[] {
-			"foo@example.com:hello", "bar@example.com:world"
+			"awful:accident",
+			"adjust:aeroplane",
+			"a:a",
+			"auser:apass"
 	};
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
@@ -208,7 +211,6 @@ public class LoginActivity extends AppCompatActivity
 	 */
 	public class UserLoginTask extends AsyncTask<Void, Void, Boolean>
 	{
-
 		private final String mEmail;
 		private final String mPassword;
 
@@ -222,13 +224,34 @@ public class LoginActivity extends AppCompatActivity
 		protected Boolean doInBackground(Void... params)
 		{
 			// TODO: attempt authentication against a network service.
-
 			try
 			{
 				// Simulate network access.
-				Thread.sleep(2000);
+//				API api = API.getInstance();
+//
+//				boolean connectRet = api.connect(mEmail, mPassword, new API.APICallBack() {
+//					@Override
+//					public void onOpenConnection()
+//					{
+//
+//					}
+//
+//					@Override
+//					public void onSuccess()
+//					{
+//
+//					}
+//
+//					@Override
+//					public void onError()
+//					{
+//
+//					}
+//				});
+
+
 			}
-			catch (InterruptedException e)
+			catch (Exception e)
 			{
 				return false;
 			}
@@ -254,7 +277,16 @@ public class LoginActivity extends AppCompatActivity
 			showProgress(false);
 
 			if (success)
+			{
+				API api = API.getInstance(mEmail, mPassword);
+				api.setAuthorized(true);
+//				api.connect(MapsActivity.activity);
+				api.connect(BackGroundService.instance);
+
+				Intent intent = new Intent(getBaseContext(), MapsActivity.class);
+				startActivity(intent);
 				finish();
+			}
 			else
 			{
 				mPasswordView.setError(getString(R.string.error_incorrect_password));
