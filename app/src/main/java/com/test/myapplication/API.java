@@ -11,21 +11,36 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
 
-/**
- * Created by User on 05.05.2016.
- */
 public class API extends WebSocketClient
 {
+	public static final String ACTION_CONNECT_TO_WS = "com.test.myapplication.ACTION_CONNECT_TO_WS";
+	public static final String ACTION_DB_NEW_ENTRY  = "com.test.myapplication.ACTION_DB_NEW_ENTRY";
+	public static final String EXTRA_DB_NEW_ENTRY   = "com.test.myapplication.DB_NEW_ENTRY";
+
+	public static final String TAG                      = "API";
+	public static final int    STATE_CONNECTED          = 1;
+	public static final int    STATE_DISCONNECTED       = 2;
+	public static final int    STATE_DISCONNECTED_ERROR = 3;
+	public static final String BASE_URL                 = "ws://mini-mdt.wheely.com";
+
 	private static API mInstance = null;
-	private static boolean mIsAuthorized;
 
-	private static final String BASE_URL = "ws://mini-mdt.wheely.com";
-	private static final String TAG = "API";
-
-	private static volatile String mLogin;
 	private static volatile String mPass;
+	private static volatile String mLogin;
 
-	APICallBack mAPICallBack;
+	private int mState = -1;
+	private        APICallBack mAPICallBack;
+	private static boolean     mIsAuthorized;
+
+	public int getState()
+	{
+		return mState;
+	}
+
+	public void setState(int newState)
+	{
+		mState = newState;
+	}
 
 	public interface APICallBack
 	{
@@ -100,6 +115,8 @@ public class API extends WebSocketClient
 	@Override
 	public void onOpen(ServerHandshake serverHandshake)
 	{
+		setState(STATE_CONNECTED);
+
 		if (mAPICallBack != null)
 			mAPICallBack.onOpen(serverHandshake);
 	}
@@ -114,6 +131,8 @@ public class API extends WebSocketClient
 	@Override
 	public void onClose(int i, String s, boolean b)
 	{
+		setState(STATE_DISCONNECTED);
+
 		if (mAPICallBack != null)
 			mAPICallBack.onClose(i, s, b);
 	}
@@ -121,13 +140,16 @@ public class API extends WebSocketClient
 	@Override
 	public void onError(Exception e)
 	{
+		setState(STATE_DISCONNECTED_ERROR);
+
 		if (mAPICallBack != null)
 			mAPICallBack.onError(e);
 	}
 
 	public boolean connect(@Nullable final APICallBack apiCallBack)
 	{
-		mAPICallBack = apiCallBack;
+		if (apiCallBack != null)
+			mAPICallBack = apiCallBack;
 
 		this.connect();
 		return true;

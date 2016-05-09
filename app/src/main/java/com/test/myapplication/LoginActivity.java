@@ -26,23 +26,19 @@ public class LoginActivity extends AppCompatActivity
 	/**
 	 * A dummy authentication store containing known user names and passwords.
 	 */
-	private static final String[] DUMMY_CREDENTIALS = new String[] {
-			"awful:accident",
-			"adjust:aeroplane",
-			"a:a",
-			"auser:apass"
-	};
+	private static final String[]      DUMMY_CREDENTIALS = new String[] {"awful:accident", "adjust:aeroplane", "a:a", "auser:apass"};
+	private static final String        TAG               = "LoginActivity";
 	/**
 	 * Keep track of the login task to ensure we can cancel it if requested.
 	 */
-	private UserLoginTask mAuthTask = null;
-
+	private              UserLoginTask mAuthTask         = null;
+	
 	// UI references.
 	private AutoCompleteTextView mEmailView;
-	private EditText mPasswordView;
-	private View mProgressView;
-	private View mLoginFormView;
-
+	private EditText             mPasswordView;
+	private View                 mProgressView;
+	private View                 mLoginFormView;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
@@ -51,7 +47,7 @@ public class LoginActivity extends AppCompatActivity
 		setupActionBar();
 		// Set up the login form.
 		mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-
+		
 		mPasswordView = (EditText) findViewById(R.id.password);
 		mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener()
 		{
@@ -66,7 +62,7 @@ public class LoginActivity extends AppCompatActivity
 				return false;
 			}
 		});
-
+		
 		Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
 		mEmailSignInButton.setOnClickListener(new OnClickListener()
 		{
@@ -76,11 +72,11 @@ public class LoginActivity extends AppCompatActivity
 				attemptLogin();
 			}
 		});
-
+		
 		mLoginFormView = findViewById(R.id.login_form);
 		mProgressView = findViewById(R.id.login_progress);
 	}
-
+	
 	/**
 	 * Set up the {@link android.app.ActionBar}, if the API is available.
 	 */
@@ -93,7 +89,7 @@ public class LoginActivity extends AppCompatActivity
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		}
 	}
-
+	
 	/**
 	 * Attempts to sign in or register the account specified by the login form.
 	 * If there are form errors (invalid email, missing fields, etc.), the
@@ -103,18 +99,18 @@ public class LoginActivity extends AppCompatActivity
 	{
 		if (mAuthTask != null)
 			return;
-
+		
 		// Reset errors.
 		mEmailView.setError(null);
 		mPasswordView.setError(null);
-
+		
 		// Store values at the time of the login attempt.
-		String email = mEmailView.getText().toString();
+		String email    = mEmailView.getText().toString();
 		String password = mPasswordView.getText().toString();
-
-		boolean cancel = false;
-		View focusView = null;
-
+		
+		boolean cancel    = false;
+		View    focusView = null;
+		
 		// Check for a valid password, if the user entered one.
 		if (!TextUtils.isEmpty(password) && !isPasswordValid(password))
 		{
@@ -122,7 +118,7 @@ public class LoginActivity extends AppCompatActivity
 			focusView = mPasswordView;
 			cancel = true;
 		}
-
+		
 		// Check for a valid email address.
 		if (TextUtils.isEmpty(email))
 		{
@@ -136,7 +132,7 @@ public class LoginActivity extends AppCompatActivity
 			focusView = mEmailView;
 			cancel = true;
 		}
-
+		
 		if (cancel)
 		{
 			// There was an error; don't attempt login and focus the first
@@ -148,8 +144,28 @@ public class LoginActivity extends AppCompatActivity
 			// Show a progress spinner, and kick off a background task to
 			// perform the user login attempt.
 			showProgress(true);
-			mAuthTask = new UserLoginTask(email, password);
-			mAuthTask.execute((Void) null);
+			//mAuthTask = new UserLoginTask(email, password);
+			//mAuthTask.execute((Void) null);
+			String mEmail    = mEmailView.getText().toString();
+			String mPassword = mPasswordView.getText().toString();
+
+			API api = API.getInstance(mEmail, mPassword);
+
+			api.setAuthorized(true);
+			//				api.connect(MapsActivity.mActivity);
+
+			Intent serviceIntent = new Intent(getApplicationContext(), DataCollectingService.class);
+			serviceIntent.setAction(API.ACTION_CONNECT_TO_WS);
+			serviceIntent.putExtra("login", mEmail);
+			serviceIntent.putExtra("password", mPassword);
+			startService(serviceIntent);
+
+			//				api.connect(DataCollectingService.mInstance);
+
+			Intent intent = new Intent(getBaseContext(), MapsActivity.class);
+			startActivity(intent);
+			finish();
+			
 		}
 	}
 
@@ -157,12 +173,12 @@ public class LoginActivity extends AppCompatActivity
 	{
 		return email.startsWith("a");
 	}
-
+	
 	private boolean isPasswordValid(String password)
 	{
 		return password.startsWith("a");
 	}
-
+	
 	/**
 	 * Shows the progress UI and hides the login form.
 	 */
@@ -175,7 +191,7 @@ public class LoginActivity extends AppCompatActivity
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2)
 		{
 			int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
-
+			
 			mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
 			mLoginFormView.animate().setDuration(shortAnimTime).alpha(show ? 0 : 1).setListener(new AnimatorListenerAdapter()
 			{
@@ -185,7 +201,7 @@ public class LoginActivity extends AppCompatActivity
 					mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
 				}
 			});
-
+			
 			mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
 			mProgressView.animate().setDuration(shortAnimTime).alpha(show ? 1 : 0).setListener(new AnimatorListenerAdapter()
 			{
@@ -204,7 +220,7 @@ public class LoginActivity extends AppCompatActivity
 			mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
 		}
 	}
-
+	
 	/**
 	 * Represents an asynchronous login/registration task used to authenticate
 	 * the user.
@@ -213,49 +229,27 @@ public class LoginActivity extends AppCompatActivity
 	{
 		private final String mEmail;
 		private final String mPassword;
-
+		
 		UserLoginTask(String email, String password)
 		{
 			mEmail = email;
 			mPassword = password;
 		}
-
+		
 		@Override
 		protected Boolean doInBackground(Void... params)
 		{
 			// TODO: attempt authentication against a network service.
 			try
 			{
-				// Simulate network access.
-//				API api = API.getInstance();
-//
-//				boolean connectRet = api.connect(mEmail, mPassword, new API.APICallBack() {
-//					@Override
-//					public void onOpenConnection()
-//					{
-//
-//					}
-//
-//					@Override
-//					public void onSuccess()
-//					{
-//
-//					}
-//
-//					@Override
-//					public void onError()
-//					{
-//
-//					}
-//				});
 
-
+				
 			}
 			catch (Exception e)
 			{
 				return false;
 			}
-
+			
 			for (String credential : DUMMY_CREDENTIALS)
 			{
 				String[] pieces = credential.split(":");
@@ -265,24 +259,31 @@ public class LoginActivity extends AppCompatActivity
 					return pieces[1].equals(mPassword);
 				}
 			}
-
+			
 			// TODO: register the new account here.
 			return false;
 		}
-
+		
 		@Override
 		protected void onPostExecute(final Boolean success)
 		{
 			mAuthTask = null;
 			showProgress(false);
-
+			
 			if (success)
 			{
 				API api = API.getInstance(mEmail, mPassword);
 				api.setAuthorized(true);
-//				api.connect(MapsActivity.activity);
-				api.connect(BackGroundService.instance);
-
+				//				api.connect(MapsActivity.mActivity);
+				
+				Intent serviceIntent = new Intent(getApplicationContext(), DataCollectingService.class);
+				serviceIntent.setAction(API.ACTION_CONNECT_TO_WS);
+				serviceIntent.putExtra("login", mEmail);
+				serviceIntent.putExtra("password", mPassword);
+				startService(serviceIntent);
+				
+				//				api.connect(DataCollectingService.mInstance);
+				
 				Intent intent = new Intent(getBaseContext(), MapsActivity.class);
 				startActivity(intent);
 				finish();
@@ -293,7 +294,7 @@ public class LoginActivity extends AppCompatActivity
 				mPasswordView.requestFocus();
 			}
 		}
-
+		
 		@Override
 		protected void onCancelled()
 		{

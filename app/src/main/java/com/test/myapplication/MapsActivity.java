@@ -1,8 +1,19 @@
 package com.test.myapplication;
 
+import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.ContextCompat;
+import android.text.TextUtils;
+import android.util.Log;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -17,18 +28,83 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, API.APICallBack
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 {
-	private static GoogleMap mMap;
-	static MapsActivity activity;
+	private static final String TAG = "MapsActivity";
+	private static GoogleMap    mMap;
+	static         MapsActivity mActivity;
+
+
+	private String[] obligatoryPermissions = new String[] {Manifest.permission.ACCESS_FINE_LOCATION};
+
+	private static final int PERMISSIONS_REQUEST_OBLIGATORY = 0;
+	private static final int PERMISSIONS_REQUEST_SINGLE     = 1;
+
+	@Override
+	public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults)
+	{
+		switch (requestCode)
+		{
+			case PERMISSIONS_REQUEST_OBLIGATORY:
+			{
+				for (int i = 0; i < permissions.length; i++)
+				{
+					String permission = permissions[i];
+					// If request is cancelled, the result arrays are empty.
+					if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
+					{
+						// permission was granted, yay! Do the contacts-related task you need to do.
+					}
+					else
+					{
+						// permission denied, boo! Disable the functionality that depends on this permission.
+						boolean quit = false;
+
+						if (TextUtils.equals(permission, Manifest.permission.ACCESS_FINE_LOCATION))
+						{
+							quit = true;
+							//							ApplicationInstance.showErrorToast(this, "Проверка лицензии невозможна без доступа к телефону. Предоставьте разрешение приложению");
+						}
+						if (TextUtils.equals(permission, Manifest.permission.GET_ACCOUNTS))
+						{
+							quit = true;
+							//							ApplicationInstance.showErrorToast(this, "Проверка лицензии невозможна без доступа к аккаунтам на устройстве. Предоставьте разрешение приложению");
+						}
+
+						if (quit)
+							finish();
+					}
+				}
+				break;
+			}
+			case PERMISSIONS_REQUEST_SINGLE:
+
+				break;
+			// other 'case' lines to check for other
+			// permissions this app might request
+		}
+	}
+
+	private void checkObligatoryPermissions()
+	{
+		String request = "";
+		for (String permission : obligatoryPermissions)
+		{
+			int permissionCheck = ContextCompat.checkSelfPermission(this, permission);
+			if (permissionCheck != PackageManager.PERMISSION_GRANTED)
+				request += permission + ";;;";
+		}
+		ActivityCompat.requestPermissions(this, request.split(";;;"), PERMISSIONS_REQUEST_OBLIGATORY);
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 
-		startService(new Intent(getBaseContext(), BackGroundService.class));
-		activity = this;
+		mActivity = this;
+
+		checkObligatoryPermissions();
 
 		if (API.isAuthorized())
 		{
@@ -38,10 +114,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 			SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 			mapFragment.getMapAsync(this);
 		}
-		// Not authorized yet, get us to login activity
+		// Not authorized yet, get us to login mActivity
 		else
 		{
-//				Toast.makeText(this, "You need to authorize to access this page", Toast.LENGTH_LONG).show();
+			//				Toast.makeText(this, "You need to authorize to access this page", Toast.LENGTH_LONG).show();
 			Intent intent = new Intent(getBaseContext(), LoginActivity.class);
 			startActivity(intent);
 			finish();
@@ -65,18 +141,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 		mMap.setMyLocationEnabled(true);
 		mMap.setTrafficEnabled(true);
 
-		LatLng moscow = new LatLng(55.808024, 37.587059);
+		// Restart service need when debug only
+		if (BuildConfig.DEBUG)
+			startService(new Intent(getBaseContext(), DataCollectingService.class));
 
-		mMap.addMarker(new MarkerOptions().position(moscow).title("Place of development :)"));
-		mMap.moveCamera(CameraUpdateFactory.newLatLng(moscow));
+		Location location = null;
+		location = getMyLocation();
+
+
+		if (location == null)
+		{
+			Log.d(TAG, "onMapReady: Can`t get lastKnownLocation");
+			finish();
+			return;
+		}
+
+		//		LatLng moscow = new LatLng(55.808024, 37.587059);
+		LatLng place = new LatLng(location.getLatitude(), location.getLongitude());
+		mMap.moveCamera(CameraUpdateFactory.newLatLng(place));
 
 		API api = API.getInstance(null, null);
 
 		JSONObject data = new JSONObject();
 		try
 		{
-			data.put("lat", 55.808024);
-			data.put("lon", 37.587059);
+			data.put("lat", location.getLatitude());
+			data.put("lon", location.getLongitude());
 		}
 		catch (JSONException e)
 		{
@@ -84,6 +174,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 		}
 
 		api.send(data.toString());
+	}
+
+	private Location getMyLocation()
+	{
+		LocationManager lm         = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		Location        myLocation = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+		if (myLocation == null)
+		{
+			Criteria criteria = new Criteria();
+			criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+			String provider = lm.getBestProvider(criteria, true);
+			myLocation = lm.getLastKnownLocation(provider);
+		}
+
+		return myLocation;
 	}
 
 	/**
@@ -100,7 +206,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 		double lat = serverPoint.optDouble("lat", -1);
 		double lon = serverPoint.optDouble("lon", -1);
-		int id = serverPoint.optInt("id", -1);
+		int    id  = serverPoint.optInt("id", -1);
 
 		LatLng position = new LatLng(lat, lon);
 
@@ -119,21 +225,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 				@Override
 				public void run()
 				{
-					Marker m = mMap.addMarker(makeMapPoint(point));
-					String id = m.getId();
+					try
+					{
+						Marker m  = mMap.addMarker(makeMapPoint(point));
+						String id = m.getId();
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+					}
 				}
 			});
 		}
 	}
 
-
-	@Override
-	public void onOpen(ServerHandshake serverHandshake)
-	{
-
-	}
-
-	@Override
 	public void onMessage(String s)
 	{
 		try
@@ -147,15 +252,4 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 		}
 	}
 
-	@Override
-	public void onClose(int i, String s, boolean b)
-	{
-
-	}
-
-	@Override
-	public void onError(Exception e)
-	{
-
-	}
 }
