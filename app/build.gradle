@@ -1,21 +1,104 @@
 apply plugin: 'com.android.application'
 
-android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.3"
 
-    defaultConfig {
-        applicationId "com.test.myapplication"
-        minSdkVersion 11
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+android {
+    /**
+     * Конфиг задается здесь, дальше трогать ничего не нужно
+     * */
+    def archivesBasePrefix = "WheelyTestApp"
+    def applicationPackage = "com.test.myapplication"
+    def cfg_minSdkVersion = 14
+    def cfg_targetSdkVersion = 23
+    def cfg_moduleName = ":app"
+
+    lintOptions {
+        // checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
     }
+
+    compileSdkVersion 23
+    buildToolsVersion '23.0.3'
+
+    def versionPropsFile = file('../version.properties')
+
+    if (versionPropsFile.canRead()) {
+        def Properties versionProps = new Properties()
+
+        versionProps.load(new FileInputStream(versionPropsFile))
+        def release = false
+
+        def nameSuffix = ""
+        def runTasks = project.gradle.startParameter.taskNames
+        println runTasks.toString()
+
+        if (cfg_moduleName + ':assembleRelease' in runTasks) {
+            release = true
+            println 'Increasing version code requested'
+        }
+
+        def versionMajor = versionProps['VERSION_MAJOR'].toInteger()
+        def versionMinor = versionProps['VERSION_MINOR'].toInteger()
+        ext.revision = 'git rev-list --count HEAD'.execute().text.trim()
+        def versionBuild = "${revision}".toInteger()
+        // Increase only in release builds
+        def newVersionCode = versionProps['VERSION_CODE'].toInteger() + (release ? 1 : 0)
+
+        if (!versionMajor)
+            throw new GradleException("Could not match build version, check version.properties file!")
+
+        def build = versionBuild % 1000;
+        versionMinor = (versionBuild - build) / 1000;
+
+
+        def versionBuildString = versionMajor + "." + versionMinor + "." + String.format("%03d", (versionBuild))
+
+        println 'Building version ' + versionBuildString
+        println 'Building ' + (release ? 'release' : 'debug') + ' version of apk'
+
+        versionProps['VERSION_MAJOR'] = versionMajor.toString()
+        versionProps['VERSION_MINOR'] = versionMinor.toString()
+//        versionProps['VERSION_BUILD'] = versionBuild.toString()
+        versionProps['VERSION_CODE'] = newVersionCode.toString()
+        versionProps.store(versionPropsFile.newWriter(), null)
+
+        if (release) {
+            nameSuffix += "-" + versionBuildString
+            nameSuffix += "-" + new Date().format("dd.MM.yyyy")
+        }
+
+        defaultConfig {
+            archivesBaseName = archivesBasePrefix + nameSuffix;
+            applicationId applicationPackage
+            minSdkVersion cfg_minSdkVersion
+            targetSdkVersion cfg_targetSdkVersion
+            versionCode newVersionCode
+            versionName "${versionBuildString}"
+        }
+    } else {
+        throw new GradleException("Couldn`t read version.properties!")
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            zipAlignEnabled true
+            minifyEnabled true
         }
+        releaseBeta {
+            versionNameSuffix ' Beta'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            zipAlignEnabled true
+            minifyEnabled true
+        }
+        debug {
+            versionNameSuffix ' Debug'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
     }
 }
 

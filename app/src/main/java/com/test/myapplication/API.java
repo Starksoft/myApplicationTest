@@ -146,13 +146,15 @@ public class API extends WebSocketClient
 			mAPICallBack.onError(e);
 	}
 
-	public boolean connect(@Nullable final APICallBack apiCallBack)
+	/**
+	 * Connecting to WebSocket client
+	 * */
+	public void connect(@Nullable final APICallBack apiCallBack)
 	{
 		if (apiCallBack != null)
 			mAPICallBack = apiCallBack;
 
-		this.connect();
-		return true;
+		connect();
 	}
 
 }

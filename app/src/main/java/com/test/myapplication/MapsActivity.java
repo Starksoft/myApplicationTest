@@ -1,8 +1,10 @@
 package com.test.myapplication;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
@@ -12,6 +14,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -23,12 +26,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import org.java_websocket.handshake.ServerHandshake;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback
 {
 	private static final String TAG = "MapsActivity";
 	private static GoogleMap    mMap;
@@ -95,6 +97,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 				request += permission + ";;;";
 		}
 		ActivityCompat.requestPermissions(this, request.split(";;;"), PERMISSIONS_REQUEST_OBLIGATORY);
+	}
+
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+
+		registerReceiver(localReceiver, new IntentFilter(API.ACTION_DB_NEW_ENTRY));
+	}
+
+	@Override
+	protected void onPause()
+	{
+		super.onPause();
+		unregisterReceiver(localReceiver);
 	}
 
 	@Override
@@ -252,4 +269,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 		}
 	}
 
+	BroadcastReceiver localReceiver = new BroadcastReceiver()
+	{
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			if (intent == null)
+				return;
+
+			switch (intent.getAction())
+			{
+				case API.ACTION_DB_NEW_ENTRY:
+					if (BuildConfig.DEBUG)
+						Log.d(TAG, "onReceive: " + API.ACTION_DB_NEW_ENTRY);
+
+					Bundle extra = intent.getExtras();
+					if (extra == null)
+						return;
+
+					onMessage(extra.getString(API.EXTRA_DB_NEW_ENTRY));
+					break;
+			}
+
+		}
+	};
 }

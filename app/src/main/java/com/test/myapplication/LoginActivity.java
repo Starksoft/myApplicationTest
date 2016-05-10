@@ -4,7 +4,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -18,21 +17,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-/**
- * A login screen that offers login via email/password.
- */
 public class LoginActivity extends AppCompatActivity
 {
 	/**
 	 * A dummy authentication store containing known user names and passwords.
 	 */
-	private static final String[]      DUMMY_CREDENTIALS = new String[] {"awful:accident", "adjust:aeroplane", "a:a", "auser:apass"};
-	private static final String        TAG               = "LoginActivity";
-	/**
-	 * Keep track of the login task to ensure we can cancel it if requested.
-	 */
-	private              UserLoginTask mAuthTask         = null;
-	
+//	private static final String[] DUMMY_CREDENTIALS = new String[] {"awful:accident", "adjust:aeroplane", "a:a", "auser:apass"};
+	private static final String   TAG               = "LoginActivity";
+
 	// UI references.
 	private AutoCompleteTextView mEmailView;
 	private EditText             mPasswordView;
@@ -97,9 +89,6 @@ public class LoginActivity extends AppCompatActivity
 	 */
 	private void attemptLogin()
 	{
-		if (mAuthTask != null)
-			return;
-		
 		// Reset errors.
 		mEmailView.setError(null);
 		mPasswordView.setError(null);
@@ -218,88 +207,6 @@ public class LoginActivity extends AppCompatActivity
 			// and hide the relevant UI components.
 			mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
 			mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
-		}
-	}
-	
-	/**
-	 * Represents an asynchronous login/registration task used to authenticate
-	 * the user.
-	 */
-	public class UserLoginTask extends AsyncTask<Void, Void, Boolean>
-	{
-		private final String mEmail;
-		private final String mPassword;
-		
-		UserLoginTask(String email, String password)
-		{
-			mEmail = email;
-			mPassword = password;
-		}
-		
-		@Override
-		protected Boolean doInBackground(Void... params)
-		{
-			// TODO: attempt authentication against a network service.
-			try
-			{
-
-				
-			}
-			catch (Exception e)
-			{
-				return false;
-			}
-			
-			for (String credential : DUMMY_CREDENTIALS)
-			{
-				String[] pieces = credential.split(":");
-				if (pieces[0].equals(mEmail))
-				{
-					// Account exists, return true if the password matches.
-					return pieces[1].equals(mPassword);
-				}
-			}
-			
-			// TODO: register the new account here.
-			return false;
-		}
-		
-		@Override
-		protected void onPostExecute(final Boolean success)
-		{
-			mAuthTask = null;
-			showProgress(false);
-			
-			if (success)
-			{
-				API api = API.getInstance(mEmail, mPassword);
-				api.setAuthorized(true);
-				//				api.connect(MapsActivity.mActivity);
-				
-				Intent serviceIntent = new Intent(getApplicationContext(), DataCollectingService.class);
-				serviceIntent.setAction(API.ACTION_CONNECT_TO_WS);
-				serviceIntent.putExtra("login", mEmail);
-				serviceIntent.putExtra("password", mPassword);
-				startService(serviceIntent);
-				
-				//				api.connect(DataCollectingService.mInstance);
-				
-				Intent intent = new Intent(getBaseContext(), MapsActivity.class);
-				startActivity(intent);
-				finish();
-			}
-			else
-			{
-				mPasswordView.setError(getString(R.string.error_incorrect_password));
-				mPasswordView.requestFocus();
-			}
-		}
-		
-		@Override
-		protected void onCancelled()
-		{
-			mAuthTask = null;
-			showProgress(false);
 		}
 	}
 }
