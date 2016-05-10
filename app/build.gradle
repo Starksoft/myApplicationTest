@@ -7,7 +7,7 @@ android {
      * */
     def archivesBasePrefix = "WheelyTestApp"
     def applicationPackage = "com.test.myapplication"
-    def cfg_minSdkVersion = 14
+    def cfg_minSdkVersion = 11
     def cfg_targetSdkVersion = 23
     def cfg_moduleName = ":app"
 
@@ -104,8 +104,10 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
+
     compile 'com.android.support:appcompat-v7:23.3.0'
     compile 'com.android.support:design:23.3.0'
     compile 'com.google.android.gms:play-services:8.4.0'
+
+    testCompile 'junit:junit:4.12'
 }
