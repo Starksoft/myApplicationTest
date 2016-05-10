@@ -6,19 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
@@ -33,9 +29,7 @@ import org.json.JSONObject;
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback
 {
 	private static final String TAG = "MapsActivity";
-	private static GoogleMap    mMap;
-	static         MapsActivity mActivity;
-
+	private static GoogleMap mMap;
 
 	private String[] obligatoryPermissions = new String[] {Manifest.permission.ACCESS_FINE_LOCATION};
 
@@ -55,7 +49,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 					// If request is cancelled, the result arrays are empty.
 					if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
 					{
-						// permission was granted, yay! Do the contacts-related task you need to do.
+						// permission was granted, yay! Do the task you need to do.
 					}
 					else
 					{
@@ -65,13 +59,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 						if (TextUtils.equals(permission, Manifest.permission.ACCESS_FINE_LOCATION))
 						{
 							quit = true;
-							//							ApplicationInstance.showErrorToast(this, "Проверка лицензии невозможна без доступа к телефону. Предоставьте разрешение приложению");
+							Toast.makeText(this, "This application need the location permission to work properly", Toast.LENGTH_SHORT).show();
 						}
-						if (TextUtils.equals(permission, Manifest.permission.GET_ACCOUNTS))
-						{
-							quit = true;
-							//							ApplicationInstance.showErrorToast(this, "Проверка лицензии невозможна без доступа к аккаунтам на устройстве. Предоставьте разрешение приложению");
-						}
+						//						if (TextUtils.equals(permission, Manifest.permission.GET_ACCOUNTS))
+						//						{
+						//							quit = true;
+						//						}
 
 						if (quit)
 							finish();
@@ -118,9 +111,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-
-		mActivity = this;
-
 		checkObligatoryPermissions();
 
 		if (API.isAuthorized())
@@ -161,52 +151,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		// Restart service need when debug only
 		if (BuildConfig.DEBUG)
 			startService(new Intent(getBaseContext(), DataCollectingService.class));
-
-		Location location = null;
-		location = getMyLocation();
-
-
-		if (location == null)
-		{
-			Log.d(TAG, "onMapReady: Can`t get lastKnownLocation");
-			finish();
-			return;
-		}
-
-		//		LatLng moscow = new LatLng(55.808024, 37.587059);
-		LatLng place = new LatLng(location.getLatitude(), location.getLongitude());
-		mMap.moveCamera(CameraUpdateFactory.newLatLng(place));
-
-		API api = API.getInstance(null, null);
-
-		JSONObject data = new JSONObject();
-		try
-		{
-			data.put("lat", location.getLatitude());
-			data.put("lon", location.getLongitude());
-		}
-		catch (JSONException e)
-		{
-			e.printStackTrace();
-		}
-
-		api.send(data.toString());
-	}
-
-	private Location getMyLocation()
-	{
-		LocationManager lm         = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-		Location        myLocation = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-
-		if (myLocation == null)
-		{
-			Criteria criteria = new Criteria();
-			criteria.setAccuracy(Criteria.ACCURACY_COARSE);
-			String provider = lm.getBestProvider(criteria, true);
-			myLocation = lm.getLastKnownLocation(provider);
-		}
-
-		return myLocation;
 	}
 
 	/**
@@ -216,10 +160,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 	 * "lon": 37.474764
 	 * }
 	 */
-	private MarkerOptions makeMapPoint(JSONObject serverPoint)
+	private MarkerOptions makeMapPoint(JSONObject serverPoint) throws NullPointerException
 	{
 		if (serverPoint == null)
-			return null;
+			throw new NullPointerException();
 
 		double lat = serverPoint.optDouble("lat", -1);
 		double lon = serverPoint.optDouble("lon", -1);
@@ -256,19 +200,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 		}
 	}
 
-	public void onMessage(String s)
-	{
-		try
-		{
-			JSONArray array = new JSONArray(s);
-			setupPoints(array);
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-	}
-
 	BroadcastReceiver localReceiver = new BroadcastReceiver()
 	{
 		@Override
@@ -287,7 +218,15 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 					if (extra == null)
 						return;
 
-					onMessage(extra.getString(API.EXTRA_DB_NEW_ENTRY));
+					try
+					{
+						JSONArray array = new JSONArray(extra.getString(API.EXTRA_DB_NEW_ENTRY));
+						setupPoints(array);
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+					}
 					break;
 			}
 

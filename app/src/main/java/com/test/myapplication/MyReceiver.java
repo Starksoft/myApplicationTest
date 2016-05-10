@@ -25,17 +25,6 @@ public class MyReceiver extends BroadcastReceiver
 			case Intent.ACTION_BOOT_COMPLETED:
 				context.startService(new Intent(context, DataCollectingService.class));
 				break;
-
-//			case API.ACTION_DB_NEW_ENTRY:
-//				if (BuildConfig.DEBUG)
-//					Log.d(TAG, "onReceive: " + API.ACTION_DB_NEW_ENTRY);
-//
-//				Bundle extra = intent.getExtras();
-//				if (extra == null)
-//					return;
-//
-//				MapsActivity.mActivity.onMessage(extra.getString(API.EXTRA_DB_NEW_ENTRY));
-//				break;
 		}
 	}
 }
